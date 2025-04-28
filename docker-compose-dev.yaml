@@ -1,0 +1,126 @@
+services:
+  # Базовый образ больше не ссылается на внешний репозиторий
+  base:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        BUNDLE_WITHOUT: ''
+        EXECJS_RUNTIME: 'Node'
+        RAILS_ENV: 'development'
+        RAILS_SERVE_STATIC_FILES: 'false'
+    image: chatwoot-base-local:latest  # Локальное имя образа
+    env_file: .env
+
+  # Rails приложение
+  rails:
+    build:
+      context: .
+      dockerfile: ./docker/dockerfiles/rails.Dockerfile
+    image: chatwoot-rails-local:latest  # Локальное имя образа
+    volumes:
+      - ./:/app:delegated
+      - node_modules:/app/node_modules
+      - packs:/app/public/packs
+      - cache:/app/tmp/cache
+      - bundle:/usr/local/bundle
+    depends_on:
+      - postgres
+      - redis
+      - mailhog
+    ports:
+      - 8000:3000
+    env_file: .env
+    environment:
+      - FRONTEND_URL=http://0.0.0.0:8000
+      - NODE_ENV=development
+      - RAILS_ENV=development
+    entrypoint: docker/entrypoints/rails.sh
+    command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+
+  # Sidekiq для фоновых задач
+  sidekiq:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        BUNDLE_WITHOUT: ''
+        RAILS_ENV: 'development'
+    image: chatwoot-sidekiq-local:latest  # Локальное имя образа
+    volumes:
+      - ./:/app:delegated
+      - node_modules:/app/node_modules
+      - packs:/app/public/packs
+      - cache:/app/tmp/cache
+      - bundle:/usr/local/bundle
+    depends_on:
+      - postgres
+      - redis
+      - mailhog
+    environment:
+      - NODE_ENV=development
+      - RAILS_ENV=development
+    env_file: .env
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+
+  # Vite для фронтенда
+  vite:
+    build:
+      context: .
+      dockerfile: ./docker/dockerfiles/vite.Dockerfile
+    image: chatwoot-vite-local:latest  # Локальное имя образа
+    volumes:
+      - ./:/app:delegated
+      - node_modules:/app/node_modules
+      - packs:/app/public/packs
+      - cache:/app/tmp/cache
+      - bundle:/usr/local/bundle
+    ports:
+      - "3036:3036" # Vite dev server
+    environment:
+      - VITE_DEV_SERVER_HOST=0.0.0.0
+      - NODE_ENV=development
+      - RAILS_ENV=development
+    env_file: .env
+    entrypoint: docker/entrypoints/vite.sh
+    command: bin/vite dev
+
+  # PostgreSQL база данных
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: always
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres:/data/postgres
+    environment:
+      - POSTGRES_DB=chatwoot_dev
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  # Redis для кеширования
+  redis:
+    image: redis:alpine
+    restart: always
+    command: ["redis-server", "--requirepass", "redis_password"]
+    environment:
+      - REDIS_PASSWORD=redis_password
+    volumes:
+      - redis:/data/redis
+    ports:
+      - '6379:6379'
+
+  # Mailhog для тестирования email
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - 8025:8025
+      - 1025:1025
+
+volumes:
+  postgres:
+  redis:
+  packs:
+  node_modules:
+  cache:
+  bundle:
