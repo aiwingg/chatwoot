@@ -30,6 +30,7 @@ export default {
       conversationSize: 'conversation/getConversationSize',
       currentUser: 'contacts/getCurrentUser',
       isWidgetStyleFlat: 'appConfig/isWidgetStyleFlat',
+      features: 'appConfig/getFeatures',
     }),
     textColor() {
       return getContrastingTextColor(this.widgetColor);
@@ -49,6 +50,9 @@ export default {
       return (
         this.inReplyTo && (this.inReplyTo.content || this.inReplyTo.attachments)
       );
+    },
+    showCallButton() {
+      return this.$store.state.appConfig.features?.callEnabled;
     },
   },
   mounted() {
@@ -111,6 +115,16 @@ export default {
         }
       }
     },
+    onCallButtonClick() {
+      // Отправляем событие на родительское окно
+      window.parent.postMessage({
+        type: 'chatwoot:call-requested',
+        data: {
+          conversationId: this.$store.state.conversation.currentConversationId,
+          userId: this.$store.state.conversation.currentConversation?.user?.id
+        }
+      }, '*');
+    },
   },
 };
 </script>
@@ -154,5 +168,30 @@ export default {
     >
       {{ $t('EMAIL_TRANSCRIPT.BUTTON_TEXT') }}
     </CustomButton>
+    <button
+      v-if="showCallButton"
+      class="call-button"
+      @click="onCallButtonClick"
+    >
+      <span class="icon-phone" />
+      {{ $t('CALL_BUTTON.LABEL') }}
+    </button>
   </div>
 </template>
+
+<style scoped>
+.call-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  background-color: var(--w-400);
+  color: var(--white);
+  cursor: pointer;
+}
+.call-button .icon-phone {
+  margin-right: 4px;
+}
+</style>

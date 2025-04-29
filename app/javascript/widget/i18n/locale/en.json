@@ -138,5 +138,8 @@
   },
   "FOOTER_REPLY_TO": {
     "REPLY_TO": "Replying to:"
+  },
+  "CALL_BUTTON": {
+    "LABEL": "Call"
   }
 }

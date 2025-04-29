@@ -69,6 +69,7 @@ export default {
       selectedTabIndex: 0,
       selectedPortalSlug: '',
       showBusinessNameInput: false,
+      showCallButton: false,
     };
   },
   computed: {
@@ -125,32 +126,10 @@ export default {
 
       if (
         this.isATwilioChannel ||
-        this.isALineChannel ||
-        this.isAPIInbox ||
-        (this.isAnEmailChannel && !this.inbox.provider) ||
-        this.isAWhatsAppChannel ||
-        this.isAWebWidgetInbox
-      ) {
-        visibleToAllChannelTabs = [
-          ...visibleToAllChannelTabs,
-          {
-            key: 'configuration',
-            name: this.$t('INBOX_MGMT.TABS.CONFIGURATION'),
-          },
-        ];
-      }
-
-      if (
-        this.isFeatureEnabledonAccount(this.accountId, FEATURE_FLAGS.AGENT_BOTS)
-      ) {
-        visibleToAllChannelTabs = [
-          ...visibleToAllChannelTabs,
-          {
-            key: 'botConfiguration',
-            name: this.$t('INBOX_MGMT.TABS.BOT_CONFIGURATION'),
-          },
-        ];
-      }
+        this.isATwitterInbox ||
+        this.isAFacebookInbox
+      )
+        return visibleToAllChannelTabs;
       return visibleToAllChannelTabs;
     },
     currentInboxId() {
@@ -292,6 +271,7 @@ export default {
         this.selectedPortalSlug = this.inbox.help_center
           ? this.inbox.help_center.slug
           : '';
+        this.showCallButton = this.inbox.features?.callEnabled || false;
       });
     },
     async updateInbox() {
@@ -321,6 +301,9 @@ export default {
             selectedFeatureFlags: this.selectedFeatureFlags,
             reply_time: this.replyTime || 'in_a_few_minutes',
             continuity_via_email: this.continuityViaEmail,
+          },
+          features: {
+            callEnabled: this.showCallButton,
           },
         };
         if (this.avatarFile) {
@@ -363,6 +346,20 @@ export default {
           this.$refs.businessNameInput.focus();
         });
       }
+    },
+    updateFeatures() {
+      const features = {
+        callEnabled: this.showCallButton,
+      };
+      
+      this.$store.dispatch('inboxes/updateInbox', {
+        id: this.inbox.id,
+        features,
+        formData: false,
+      });
+    },
+    loadInboxSettings() {
+      this.showCallButton = this.inbox.features?.callEnabled || false;
     },
   },
   validations: {
@@ -726,6 +723,14 @@ export default {
             <label for="use_inbox_avatar_for_bot">
               {{ $t('INBOX_MGMT.FEATURES.USE_INBOX_AVATAR_FOR_BOT') }}
             </label>
+          </div>
+          <div v-if="isAWebWidgetInbox" class="settings-subsection">
+            <woot-switch
+              v-model="showCallButton"
+              :label="$t('INBOX_MGMT.FEATURES.CALL_BUTTON.TITLE')"
+              :help-text="$t('INBOX_MGMT.FEATURES.CALL_BUTTON.DESCRIPTION')"
+              @input="updateFeatures"
+            />
           </div>
         </SettingsSection>
         <SettingsSection

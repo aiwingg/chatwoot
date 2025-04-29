@@ -144,7 +144,7 @@
           "SLA_MISSED_NEXT_RESPONSE": "A conversation misses next response SLA",
           "SLA_MISSED_RESOLUTION": "A conversation misses resolution SLA"
         },
-        "BROWSER_PERMISSION": "Enable push notifications for your browser so you’re able to receive them"
+        "BROWSER_PERMISSION": "Enable push notifications for your browser so you're able to receive them"
       },
       "API": {
         "UPDATE_SUCCESS": "Your notification preferences are updated successfully",
@@ -408,6 +408,14 @@
       "SWITCH_TO_PRIVATE_NOTE": "Switch to Private Note",
       "SWITCH_TO_REPLY": "Switch to Reply",
       "TOGGLE_SNOOZE_DROPDOWN": "Toggle snooze dropdown"
+    }
+  },
+  "INBOX_MGMT": {
+    "FEATURES": {
+      "CALL_BUTTON": {
+        "TITLE": "Call Button",
+        "DESCRIPTION": "Enable call button in widget to allow customers to directly call from the chat widget"
+      }
     }
   }
 }

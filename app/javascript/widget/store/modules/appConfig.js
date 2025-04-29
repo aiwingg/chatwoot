@@ -21,6 +21,9 @@ const state = {
   widgetStyle: 'standard',
   darkMode: 'light',
   isUpdatingRoute: false,
+  features: {
+    callEnabled: false,
+  },
 };
 
 export const getters = {
@@ -108,6 +111,12 @@ export const mutations = {
   },
   [SET_ROUTE_UPDATE_STATE]($state, status) {
     $state.isUpdatingRoute = status;
+  },
+  SET_FEATURES(state, features) {
+    state.features = {
+      ...state.features,
+      ...features,
+    };
   },
 };
 
