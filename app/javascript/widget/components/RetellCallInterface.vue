@@ -69,13 +69,20 @@ export default {
             this.$refs.callContainer,
             {
               onError: this.handleCallError,
-              onConnected: () => { this.callStatus = 'connected'; },
+              onConnected: () => { 
+                this.callStatus = 'connected';
+                console.log('Call connected successfully');
+              },
               onDisconnected: this.handleCallDisconnected
             }
           );
           
           // Запускаем звонок
-          this.retellCall.start();
+          if (this.retellCall) {
+            this.retellCall.start();
+          } else {
+            throw new Error('Failed to initialize call');
+          }
         });
       } catch (error) {
         this.handleCallError(error);
