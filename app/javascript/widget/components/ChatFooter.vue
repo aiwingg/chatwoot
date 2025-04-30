@@ -4,23 +4,31 @@ import { getContrastingTextColor } from '@chatwoot/utils';
 import CustomButton from 'shared/components/Button.vue';
 import FooterReplyTo from 'widget/components/FooterReplyTo.vue';
 import ChatInputWrap from 'widget/components/ChatInputWrap.vue';
+import RetellCallInterface from 'widget/components/RetellCallInterface.vue';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { sendEmailTranscript } from 'widget/api/conversation';
 import routerMixin from 'widget/mixins/routerMixin';
 import { IFrameHelper } from '../helpers/utils';
 import { CHATWOOT_ON_START_CONVERSATION } from '../constants/sdkEvents';
 import { emitter } from 'shared/helpers/mitt';
+import { createCallSession, initializeRetellCall } from '../services/retellAI';
 
 export default {
   components: {
     ChatInputWrap,
     CustomButton,
     FooterReplyTo,
+    RetellCallInterface,
   },
   mixins: [routerMixin],
   data() {
     return {
       inReplyTo: null,
+      showCallInterface: false,
+      callStatus: 'idle', // idle, connecting, connected, error
+      errorMessage: '',
+      sessionId: null,
+      retellCall: null
     };
   },
   computed: {
@@ -116,15 +124,66 @@ export default {
       }
     },
     onCallButtonClick() {
-      // Отправляем событие на родительское окно
-      window.parent.postMessage({
-        type: 'chatwoot:call-requested',
-        data: {
-          conversationId: this.$store.state.conversation.currentConversationId,
-          userId: this.$store.state.conversation.currentConversation?.user?.id
-        }
-      }, '*');
+      this.showCallInterface = !this.showCallInterface;
+      
+      // Если интерфейс закрывается, логируем это
+      if (!this.showCallInterface) {
+        console.log('Call interface closed');
+      }
     },
+    handleCallEnded() {
+      console.log('Call ended');
+      // Дополнительная логика после завершения звонка
+      // В будущем здесь может быть код для сохранения стенограммы звонка
+    },
+    
+    handleCallError(error) {
+      console.error('Call error:', error);
+      // Можно отобразить сообщение об ошибке пользователю
+    },
+    async startCall() {
+      try {
+        this.callStatus = 'connecting';
+        
+        // Создаем сессию через вебхук
+        this.sessionId = await createCallSession({
+          userId: this.userId
+        });
+        
+        // После получения sessionId инициализируем звонок
+        this.$nextTick(() => {
+          this.retellCall = initializeRetellCall(
+            this.sessionId,
+            this.$refs.callContainer,
+            {
+              onError: this.handleCallError,
+              onConnected: () => { this.callStatus = 'connected'; },
+              onDisconnected: this.handleCallDisconnected
+            }
+          );
+          
+          // Запускаем звонок
+          this.retellCall.start();
+        });
+      } catch (error) {
+        this.handleCallError(error);
+      }
+    },
+    
+    endCall() {
+      if (this.retellCall) {
+        this.retellCall.stop();
+        this.retellCall = null;
+      }
+      this.callStatus = 'idle';
+      this.$emit('call-ended');
+    },
+    
+    handleCallDisconnected() {
+      this.callStatus = 'idle';
+      this.retellCall = null;
+      this.$emit('call-ended');
+    }
   },
 };
 </script>
@@ -150,7 +209,7 @@ export default {
         @click="onCallButtonClick"
       >
         <span class="icon-phone" />
-        {{ $t('CALL_BUTTON.LABEL') }}
+        {{ showCallInterface ? $t('CALL_BUTTON.HIDE') : $t('CALL_BUTTON.LABEL') }}
       </button>
     </div>
     <ChatInputWrap
@@ -186,6 +245,16 @@ export default {
       {{ $t('CALL_BUTTON.LABEL') }}
     </button>
   </div>
+  
+  <!-- Добавляем интерфейс звонка -->
+  <div v-if="showCallInterface" class="call-interface-wrapper">
+    <RetellCallInterface 
+      :user-id="$store.state.conversation.currentConversation?.user?.id"
+      :conversation-id="$store.state.conversation.currentConversationId"
+      @call-ended="handleCallEnded"
+      @call-error="handleCallError"
+    />
+  </div>
 </template>
 
 <style scoped>
@@ -208,5 +277,12 @@ export default {
   justify-content: flex-end;
   margin-bottom: 8px;
   padding: 0 8px;
+}
+
+.call-interface-wrapper {
+  width: 100%;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  overflow: hidden;
 }
 </style>
