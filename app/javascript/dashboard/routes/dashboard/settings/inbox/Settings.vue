@@ -353,7 +353,7 @@ export default {
       };
       
       this.$store.dispatch('inboxes/updateInbox', {
-        id: this.inbox.id,
+        id: this.currentInboxId,
         features,
         formData: false,
       });

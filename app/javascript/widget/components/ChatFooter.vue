@@ -52,7 +52,7 @@ export default {
       );
     },
     showCallButton() {
-      return this.$store.state.appConfig.features?.callEnabled;
+      return true;
     },
   },
   mounted() {
@@ -144,6 +144,15 @@ export default {
       :in-reply-to="inReplyTo"
       @dismiss="inReplyTo = null"
     />
+    <div v-if="showCallButton" class="chat-actions">
+      <button
+        class="call-button"
+        @click="onCallButtonClick"
+      >
+        <span class="icon-phone" />
+        {{ $t('CALL_BUTTON.LABEL') }}
+      </button>
+    </div>
     <ChatInputWrap
       class="shadow-sm"
       :on-send-message="handleSendMessage"
@@ -193,5 +202,11 @@ export default {
 }
 .call-button .icon-phone {
   margin-right: 4px;
+}
+.chat-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+  padding: 0 8px;
 }
 </style>

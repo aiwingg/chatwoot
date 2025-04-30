@@ -22,7 +22,7 @@ const state = {
   darkMode: 'light',
   isUpdatingRoute: false,
   features: {
-    callEnabled: false,
+    // Это было добавлено некорректно, из-за чего мог сломаться рендеринг
   },
 };
 
@@ -37,6 +37,7 @@ export const getters = {
   darkMode: $state => $state.darkMode,
   getShowUnreadMessagesDialog: $state => $state.showUnreadMessagesDialog,
   getIsUpdatingRoute: _state => _state.isUpdatingRoute,
+  getFeatures: $state => $state.features,
 };
 
 export const actions = {
