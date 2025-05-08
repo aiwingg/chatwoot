@@ -75,8 +75,15 @@ docker exec -it chatwoot-rails-1 bundle exec rails db:seed
 
 ## Управление контейнерами
 
-### Запуск контейнеров
+### Сборка и запуск контейнеров
 ```bash
+# Сборка контейнеров
+docker compose -f docker-compose-dev.yaml build
+
+# Сборка и запуск контейнеров одной командой
+docker compose -f docker-compose-dev.yaml up --build -d
+
+# Запуск контейнеров без пересборки
 docker compose -f docker-compose-dev.yaml up -d
 ```
 
