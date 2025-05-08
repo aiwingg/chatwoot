@@ -49,6 +49,8 @@
         <% end %>
         enabledLanguages: <%= available_locales_with_name.to_json.html_safe %>,
         helpUrls: <%= feature_help_urls.to_json.html_safe %>,
+        retellApiKey: '<%= ENV.fetch('RETELL_API_KEY', '') %>',
+        retellWebhookUrl: '<%= ENV.fetch('RETELL_WEBHOOK_URL', '') %>',
         selectedLocale: '<%= I18n.locale %>'
       }
       window.globalConfig = <%= raw @global_config.to_json %>

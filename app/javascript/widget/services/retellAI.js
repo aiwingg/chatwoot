@@ -1,9 +1,9 @@
 // RetellAI configuration and service
 const RETELL_CONFIG = {
-  API_KEY: 'YOUR_RETELL_API_KEY', // Замените на реальный ключ API
+  API_KEY: window.chatwootConfig.retellApiKey,
   LLM_ID: 'llm_08aab07b59dfe45b3929afb3c44f',
   AGENT_ID: 'agent_792fde598b27cdc13b3eb38915',
-  WEBHOOK_URL: 'https://your-webhook-endpoint.com/webhook' // Замените на URL вебхука
+  WEBHOOK_URL: window.chatwootConfig.retellWebhookUrl
 };
 
 // Создание сессии звонка
