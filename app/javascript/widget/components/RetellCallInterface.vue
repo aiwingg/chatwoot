@@ -30,7 +30,7 @@
 </template>
 
 <script>
-import { createCallSession, initializeRetellCall } from '../services/retellAI';
+import { createCallSession, initializeRetellCall, ensureRetellSDKLoaded } from '../services/retellAI';
 
 export default {
   name: 'RetellCallInterface',
@@ -52,63 +52,86 @@ export default {
       retellCall: null
     };
   },
+  mounted() {
+    // Предзагрузка SDK Retell при монтировании компонента
+    ensureRetellSDKLoaded().catch(error => {
+      console.error('Не удалось загрузить RetellAI SDK:', error);
+      this.handleError('Не удалось загрузить SDK для звонков');
+    });
+  },
+  beforeUnmount() {
+    this.endCall();
+  },
   methods: {
     async startCall() {
       try {
+        // Проверяем, настроены ли необходимые параметры
+        if (!window.chatwootConfig?.retellApiKey) {
+          throw new Error('API ключ Retell не настроен');
+        }
+        
+        if (!window.chatwootConfig?.retellWebhookUrl) {
+          throw new Error('URL вебхука Retell не настроен');
+        }
+        
         this.callStatus = 'connecting';
         
-        // Создаем сессию через вебхук
+        // Убедимся, что SDK загружен
+        await ensureRetellSDKLoaded();
+        
+        // Создаем сессию звонка
         this.sessionId = await createCallSession({
-          userId: this.userId
+          userId: this.userId,
+          conversationId: this.conversationId
         });
         
-        // После получения sessionId инициализируем звонок
-        this.$nextTick(() => {
+        // Инициализируем звонок
+        if (this.$refs.callContainer) {
           this.retellCall = initializeRetellCall(
             this.sessionId,
             this.$refs.callContainer,
             {
-              onError: this.handleCallError,
-              onConnected: () => { 
+              onConnected: () => {
                 this.callStatus = 'connected';
-                console.log('Call connected successfully');
               },
-              onDisconnected: this.handleCallDisconnected
+              onDisconnected: () => {
+                this.callStatus = 'idle';
+                this.retellCall = null;
+              },
+              onError: (error) => {
+                this.handleError(error.message || 'Произошла ошибка во время звонка');
+              }
             }
           );
           
-          // Запускаем звонок
           if (this.retellCall) {
-            this.retellCall.start();
+            this.retellCall.connect();
           } else {
-            throw new Error('Failed to initialize call');
+            throw new Error('Не удалось инициализировать звонок');
           }
-        });
+        } else {
+          throw new Error('Контейнер для звонка не найден');
+        }
       } catch (error) {
-        this.handleCallError(error);
+        this.handleError(error.message || 'Не удалось начать звонок');
       }
     },
     
     endCall() {
       if (this.retellCall) {
-        this.retellCall.stop();
+        this.retellCall.disconnect();
         this.retellCall = null;
       }
       this.callStatus = 'idle';
-      this.$emit('call-ended');
     },
     
-    handleCallError(error) {
-      console.error('Call error:', error);
-      this.errorMessage = error.message || 'An error occurred with the call';
+    handleError(message) {
+      this.errorMessage = message;
       this.callStatus = 'error';
-      this.$emit('call-error', error);
-    },
-    
-    handleCallDisconnected() {
-      this.callStatus = 'idle';
-      this.retellCall = null;
-      this.$emit('call-ended');
+      if (this.retellCall) {
+        this.retellCall.disconnect();
+        this.retellCall = null;
+      }
     }
   }
 };

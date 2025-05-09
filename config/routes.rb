@@ -329,6 +329,10 @@ Rails.application.routes.draw do
           end
         end
       end
+
+      namespace :webhooks do
+        resource :retell, only: [:create], controller: 'retell'
+      end
     end
 
     namespace :v2 do
