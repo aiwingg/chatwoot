@@ -67,6 +67,11 @@
     </script>
     <% end %>
     <script src="https://unpkg.com/@retell-ai/sdk@latest/dist/retell.bundle.js" defer></script>
+    <script src="https://unpkg.com/@retell-ai/sdk@latest/dist/retell-sdk.js" 
+            async 
+            defer 
+            onerror="console.error('Failed to load RetellAI SDK')">
+    </script>
     <%= vite_client_tag %>
     <%= vite_javascript_tag @application_pack %>
   </head>

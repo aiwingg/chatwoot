@@ -65,28 +65,27 @@ export default {
   methods: {
     async startCall() {
       try {
-        // Проверяем, настроены ли необходимые параметры
-        if (!window.chatwootConfig?.retellApiKey) {
-          throw new Error('API ключ Retell не настроен');
-        }
-        
-        if (!window.chatwootConfig?.retellWebhookUrl) {
-          throw new Error('URL вебхука Retell не настроен');
-        }
+        // Сначала убедимся, что SDK загружен
+        await ensureRetellSDKLoaded();
         
         this.callStatus = 'connecting';
         
-        // Убедимся, что SDK загружен
-        await ensureRetellSDKLoaded();
-        
-        // Создаем сессию звонка
+        // Создаем сессию через вебхук с правильными параметрами
         this.sessionId = await createCallSession({
           userId: this.userId,
           conversationId: this.conversationId
         });
         
-        // Инициализируем звонок
-        if (this.$refs.callContainer) {
+        // Проверяем, что sessionId получен
+        if (!this.sessionId) {
+          throw new Error('Не удалось получить идентификатор сессии');
+        }
+        
+        this.$nextTick(() => {
+          if (!this.$refs.callContainer) {
+            throw new Error('Контейнер для звонка не найден');
+          }
+          
           this.retellCall = initializeRetellCall(
             this.sessionId,
             this.$refs.callContainer,
@@ -105,13 +104,12 @@ export default {
           );
           
           if (this.retellCall) {
+            // Используем connect() вместо start()
             this.retellCall.connect();
           } else {
             throw new Error('Не удалось инициализировать звонок');
           }
-        } else {
-          throw new Error('Контейнер для звонка не найден');
-        }
+        });
       } catch (error) {
         this.handleError(error.message || 'Не удалось начать звонок');
       }

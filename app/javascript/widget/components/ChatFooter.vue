@@ -11,7 +11,7 @@ import routerMixin from 'widget/mixins/routerMixin';
 import { IFrameHelper } from '../helpers/utils';
 import { CHATWOOT_ON_START_CONVERSATION } from '../constants/sdkEvents';
 import { emitter } from 'shared/helpers/mitt';
-import { createCallSession, initializeRetellCall } from '../services/retellAI';
+import { createCallSession, initializeRetellCall, ensureRetellSDKLoaded } from '../services/retellAI';
 
 export default {
   components: {
@@ -123,12 +123,22 @@ export default {
         }
       }
     },
-    onCallButtonClick() {
-      this.showCallInterface = !this.showCallInterface;
-      
-      // Если интерфейс закрывается, логируем это
-      if (!this.showCallInterface) {
-        console.log('Call interface closed');
+    async onCallButtonClick() {
+      try {
+        // Проверка доступности SDK перед открытием интерфейса
+        if (!window.Retell) {
+          await ensureRetellSDKLoaded();
+        }
+        
+        this.showCallInterface = !this.showCallInterface;
+        
+        // Если интерфейс закрывается, логируем это
+        if (!this.showCallInterface) {
+          console.log('Call interface closed');
+        }
+      } catch (error) {
+        console.error('Error loading RetellAI SDK:', error);
+        this.handleCallError('Failed to load call interface. Please try again.');
       }
     },
     handleCallEnded() {

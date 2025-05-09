@@ -6,22 +6,49 @@ const RETELL_CONFIG = {
   WEBHOOK_URL: window.chatwootConfig?.retellWebhookUrl || ''
 };
 
-// Функция для проверки загрузки SDK Retell
+// Проверяем, находимся ли мы в локальной среде
+const isLocalEnvironment = window.location.hostname === 'localhost';
+
+// Функция для проверки загрузки SDK Retell с улучшенной обработкой ошибок
 export const ensureRetellSDKLoaded = () => {
+  if (isLocalEnvironment) {
+    console.log('Using mock RetellAI SDK for local development');
+    // Создаем заглушку для локальной разработки
+    window.Retell = {
+      Call: function(config) {
+        console.log('Mock RetellAI call initialized with config:', config);
+        return {
+          connect: () => {
+            console.log('Mock call connected');
+            if (config.onConnected) config.onConnected();
+          },
+          disconnect: () => {
+            console.log('Mock call disconnected');
+            if (config.onDisconnected) config.onDisconnected();
+          }
+        };
+      }
+    };
+    return Promise.resolve(window.Retell);
+  }
+  
   return new Promise((resolve, reject) => {
     if (window.Retell) {
+      console.log('RetellAI SDK already loaded');
       resolve(window.Retell);
       return;
     }
 
     // Проверка, был ли скрипт уже добавлен
-    const existingScript = document.querySelector('script[src*="retell"]');
+    const existingScript = document.querySelector('script[src*="retell-sdk"]');
     if (existingScript) {
+      console.log('RetellAI script tag exists, waiting for initialization');
       // Если скрипт уже добавлен, но объект Retell еще не доступен,
       // ждем его инициализации
       const checkRetell = setInterval(() => {
         if (window.Retell) {
           clearInterval(checkRetell);
+          console.log('RetellAI SDK initialized');
           resolve(window.Retell);
         }
       }, 100);
@@ -29,19 +56,22 @@ export const ensureRetellSDKLoaded = () => {
       // Устанавливаем таймаут на случай, если скрипт не инициализируется
       setTimeout(() => {
         clearInterval(checkRetell);
-        reject(new Error('RetellAI SDK загрузился, но не инициализировался'));
+        reject(new Error('RetellAI SDK загрузился, но не инициализировался вовремя'));
       }, 10000);
       return;
     }
 
+    console.log('Adding RetellAI script tag to document');
     // Добавляем скрипт, если его нет
     const script = document.createElement('script');
-    script.src = 'https://unpkg.com/@retell-ai/sdk@latest/dist/retell.bundle.js';
+    script.src = 'https://unpkg.com/@retell-ai/sdk@latest/dist/retell-sdk.js';
     script.async = true;
     script.onload = () => {
+      console.log('RetellAI script loaded, waiting for initialization');
       const checkRetell = setInterval(() => {
         if (window.Retell) {
           clearInterval(checkRetell);
+          console.log('RetellAI SDK initialized after load');
           resolve(window.Retell);
         }
       }, 100);
@@ -51,7 +81,10 @@ export const ensureRetellSDKLoaded = () => {
         reject(new Error('RetellAI SDK загрузился, но не инициализировался'));
       }, 5000);
     };
-    script.onerror = () => reject(new Error('Не удалось загрузить RetellAI SDK'));
+    script.onerror = () => {
+      console.error('Failed to load RetellAI SDK script');
+      reject(new Error('Не удалось загрузить RetellAI SDK'));
+    };
     document.body.appendChild(script);
   });
 };
